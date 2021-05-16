@@ -3,9 +3,10 @@
  * @param {any} fields object that contains the field data.
  */
 const PaymentSchema = function(fields) {
-    this._id = field._id;
+    this._id = fields._id;
     this.userId = fields.userId; // user that made the payment
     this.amount = fields.amount;
+    this.timePeriod = fields.timePeriod;
     this.date = fields.date || Date.now();
     this.mode = fields.mode
     this.organizationId = fields.organizationId;

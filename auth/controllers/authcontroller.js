@@ -29,4 +29,5 @@ authController.logout = function(req, res) {
         // send status code
 }
 
+
 module.exports = authController;

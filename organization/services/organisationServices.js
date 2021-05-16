@@ -16,7 +16,7 @@ const serviceChecks = {
     isDbValid: async (db) => {
         const _db = (await db)
         if(!_db || !_db.collection) {
-            throw serviceError.invalidArgs + " - " + db.toString();
+            throw new Error(serviceError.invalidArgs);
         }
     }
 }
@@ -44,7 +44,7 @@ orgServices.insert = async (db, collectionName, docToInsert) => {
 orgServices.createOrganisation = async (db, newOrganisation = new Organization({})) => {
     serviceChecks.isDbValid(db);
     if(!newOrganisation || newOrganisation.name === undefined || newOrganisation.userId === undefined) {
-        throw new Error(serviceError.invalidArgs + " - " + newOrganisation.toString());
+        throw new Error(serviceError.invalidArgs);
     }
 
     return await orgServices.insert(db, dbCollectionsNames.organizations, newOrganisation);
@@ -59,7 +59,7 @@ orgServices.createOrganisation = async (db, newOrganisation = new Organization({
 orgServices.addMember = async (db, newMember = new Member({}, {})) => {
     serviceChecks.isDbValid(db);
     if(!newMember || !newMember.organizationId || !newMember.userId) {
-        throw new Error(serviceError.invalidArgs + " - " + newMember.toString());
+        throw new Error(serviceError.invalidArgs);
     }
     
     return await orgServices.insert(db, dbCollectionsNames.members, newMember);
@@ -75,7 +75,7 @@ orgServices.createPaymentRecordMeta = async (db, newPaymentRecordMeta = new Paym
     serviceChecks.isDbValid(db);
     if(!newPaymentRecordMeta || !newPaymentRecordMeta.recordName 
         || !newPaymentRecordMeta.userId || !newPaymentRecordMeta.organizationId) {
-        throw new Error(serviceError.invalidArgs + " - " + newPaymentRecordMeta.toString())
+        throw new Error(serviceError.invalidArgs)
     }
     
     return await orgServices.insert(db, dbCollectionsNames.paymentRecordMetas, newPaymentRecordMeta);
@@ -84,10 +84,10 @@ orgServices.createPaymentRecordMeta = async (db, newPaymentRecordMeta = new Paym
 orgServices.createPaymentRecordCollection =  async (db, paymentRecordName, organizationId) => {
     serviceChecks.isDbValid(db);
     if( typeof paymentRecordName !== "string") {
-        throw new Error(serviceError.invalidArgs + " - " + paymentRecordName.toString());
+        throw new Error(serviceError.invalidArgs);
     }
     if(typeof paymentRecordName !== "string") {
-        throw new Error(serviceError.invalidArgs + " - " + organizationId.toString());
+        throw new Error(serviceError.invalidArgs);
     }
     
     // update payment record name 
@@ -97,12 +97,12 @@ orgServices.createPaymentRecordCollection =  async (db, paymentRecordName, organ
 }
 
 orgServices.postPayment = async (db, paymentRecordName, newPayment = new PaymentSchema({})) => {
-    serviceChecks.isDbValid();
+    serviceChecks.isDbValid(db);
     if(typeof paymentRecordName !== "string") {
-        throw new Error(serviceError.invalidArgs + " - " + paymentRecordName.toString())
+        throw new Error(serviceError.invalidArgs)
     }
     if(!newPayment.userId || !newPayment.amount) {
-        throw new Error(serviceError.invalidArgs + " - " + newPayment.toString())
+        throw new Error(serviceError.invalidArgs)
     }
 
     const insertedResult = orgServices.insert(db, paymentRecordName, newPayment);
@@ -128,6 +128,17 @@ orgServices.getMembersByPage = async (db, organizationId, page = 1, skip = 50) =
     const pagedMembers = await orgServices.find(db, dbCollectionsNames.members, {organizationId}, page, skip);
     return pagedMembers;
 }
+
+orgServices.getPaymentsByPage = async (db, paymentRecordName, page = 1, skip = 50) => {
+    serviceChecks.isDbValid(db);
+    if(typeof page !== "number") {
+        throw new Error(serviceError.invalidArgs + " - " + page.toString())
+    }
+
+    const pagedPayments = await orgServices.find(db, paymentRecordName, {}, page, skip)
+    return pagedPayments;
+}
+
 /**
  * Finds and returns results from the specified collection name as an array.
  * @param db The database function 
