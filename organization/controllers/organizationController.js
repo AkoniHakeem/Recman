@@ -167,8 +167,9 @@ organizationController.getPaymentRecords = async (req, res) => {
 }
 
 organizationController.getUser = async function(req, res) {
-    const {email } = req.query;
-    const user = await (await db).collection("users").findOne({email});
+    const {email, phone } = req.query;
+    const query = email? {email} : {phone}
+    const user = await (await db).collection("users").findOne(query);
     if(user && user._id) {
         res.json(user);
     }else {

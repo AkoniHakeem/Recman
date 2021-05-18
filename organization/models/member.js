@@ -4,7 +4,8 @@ const Member = function(m, additionalData) {
     this.organizationId = m.organizationId;
     this.userId = m.userId;
     this.role = m.role;// admin, member
-    this.email = m.email
+    this.email = m.email,
+    this.phone  = m.phone
     return {
         ...additionalData,
         ...this
