@@ -143,10 +143,17 @@ organizationController.getPayments = async (req, res) => {
         pageToGet = +pageToGet;
         recordName = recordName.toLowerCase()
         recordName = recordName.replace(" ", "_") + "_" + organizationId;
+
+        // orgServices.generateExpectedPayment(db)
         const paymentRecordName = recordName;
         const skip = 50; // can be configured by client
         const paymentsCount = await (await db).collection(paymentRecordName).countDocuments();
         const pagedPayments = await orgServices.getPaymentsByPage(db,paymentRecordName, pageToGet, skip)
+        pagedPayments.forEach(pay => {
+            delete pay.createdAt;
+            delete pay.updatedAt;
+            pay.date = new Date(pay.date)
+        })
         const pagedResponse =  {
             count: paymentsCount,
             page: pageToGet,
@@ -175,6 +182,38 @@ organizationController.getUser = async function(req, res) {
     }else {
         res.status(400).json({message: "user not found"})
     }
+}
+
+/* expected payments */
+organizationController.getExpectedPayments = async (req, res) => {
+    const {paymentRecordName, organizationId} = req.params;
+
+    /* get payment record meta with organizationId*/
+    const paymentRecordsMetas = await orgServices.find(db, "paymentRecordMetas", {organizationId});
+        /* search for record with record name */
+    const paymentRec = paymentRecordsMetas.find(p => p.recordName.toLowerCase() === paymentRecordName.toLowerCase())
+    /* find expected payments with paymentRec._id */
+    const expectedPayments = await orgServices.find(db, `expectedPayments_${paymentRec._id.toString()}`)
+    expectedPayments.forEach(p => {
+        delete p.updatedAt;
+        p.createdAt = new Date(p.createdAt);
+    })
+    console.log(expectedPayments);
+    res.json(expectedPayments);
+}
+
+organizationController.generateExpectedPayments = async (req, res) => {
+    try {
+    /* get params */
+    const {paymentRecordName, organizationId, timePeriod, year} = req.body;
+    await orgServices.generateExpectedPaymentFor(db, organizationId, paymentRecordName, timePeriod, year);
+    res.status(200).json({});
+    } catch (error) {
+        // todo: handle error
+        console.log(error)
+        res.status(500).send()
+    }
+    
 }
 
 module.exports = organizationController;        

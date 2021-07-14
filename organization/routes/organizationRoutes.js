@@ -20,6 +20,10 @@ const _orgnizationRouter = (e) => {
 
     orgRouter.get("/get-user", organizationController.getUser);
 
+    orgRouter.get("/get-expected-payments/:paymentRecordName/:organizationId", organizationController.getExpectedPayments);
+
+    orgRouter.post("/generate-expected-payments", organizationController.generateExpectedPayments);
+
     return orgRouter;
 }
 

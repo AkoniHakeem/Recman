@@ -1,3 +1,5 @@
+const ModelBuildUpHelper = require("./modeBuildUplHelper");
+
 /**
  * Payment schema holds the fields that are contained in a dynamically created payment record.
  * @param {any} fields object that contains the field data.
@@ -10,6 +12,10 @@ const PaymentSchema = function(fields) {
     this.date = fields.date || Date.now();
     this.mode = fields.mode
     this.organizationId = fields.organizationId;
+    return {
+        ...ModelBuildUpHelper(fields),
+        ...this
+    }
 }
 
 module.exports = PaymentSchema
