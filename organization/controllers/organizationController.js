@@ -4,11 +4,8 @@ const {responseMessages: resMsg} = require("../../lib/responseMessages");
 const User = require("../../auth/models/user");
 const Member = require("../models/member");
 const PaymentRecordMeta = require("../models/paymentRecordMeta");
-const errorsMessages = require("./errors/errorsMessages");
 const PaymentSchema = require("../models/paymentSchema");
-const dbRoles = require("../roles");
-const { orgControllerErrors } = require("./errors/errorsHandler");
-const { ObjectID } = require("bson");
+const { ObjectId } = require("mongodb");
 const db = require("../db")();
 
 const organizationController = {}
@@ -53,12 +50,12 @@ organizationController.addMember = async (req, res) => {
         // {
         //     // todo: implement or move to validation middleware
         // }
-        const usser = new User(userDetails);
+        const user = new User(userDetails);
         const memberUser = new Member(userDetails)
         
         // remove user object propertises form user details and the rest
-        for(let prop in usser) {
-            if(usser.hasOwnProperty(prop)) {
+        for(let prop in user) {
+            if(user.hasOwnProperty(prop)) {
                 delete userDetails[prop];
             }
         }
@@ -118,16 +115,37 @@ organizationController.createPayment = async (req, res) => {
 
 organizationController.postPaymentRecord = async (req, res) => {
     try {
-        let {recordName} = req.body;
+        let {recordName, amount, userId} = req.body;
         const paymentRecordSchmaData = new PaymentSchema(req.body);
+        const organizationId = paymentRecordSchmaData.organizationId;
+        const organizationPaymentMeta = await (await db).collection("paymentRecordMetas").findOne({organizationId, recordName });
+        const memeber = await (await db).collection("members").findOne({userId})
+
         recordName = recordName.toLowerCase().replace(" ", "_") + "_" + paymentRecordSchmaData.organizationId;
+        
         const insertedResult = await orgServices.postPayment(db, recordName, paymentRecordSchmaData);
+
         if(insertedResult.insertedCount > 0) {
+            const expectedPaymentToUpdate = await (await db).collection(`expectedPaymentMetas_${organizationPaymentMeta._id.toString()}`)
+            .findOne({memberId: memeber.memberId, organizationId});
+            expectedPaymentToUpdate.amountOwing -= amount;
+            expectedPaymentToUpdate.amountLastPaid = amount;
+            expectedPaymentToUpdate.dateOfLastPayment = Date.now();
+            
+            const updateResult = await (await db)
+            .collection(`expectedPaymentMetas_${organizationPaymentMeta._id.toString()}`).updateOne({memberId: memeber.memberId, organizationId}, 
+                {$set: expectedPaymentToUpdate});
+
             res.json({message: resMsg.successful})
         }
         else {
             res.status(400).json({message: resMsg.failed})
         }
+        // }
+        // else {
+        //     /* just send */
+        //     res.json({message: resMsg.successful})
+        // }
     } catch (error) {
         // todo: implement proper error logging
         console.log(error)
@@ -216,4 +234,43 @@ organizationController.generateExpectedPayments = async (req, res) => {
     
 }
 
+organizationController.getMember = async (req, res) => {
+    const {memberId} = req.query;
+    const member = await (await db).collection('members').findOne({_id: ObjectId(memberId)})
+    res.json(member);
+} 
+
+organizationController.getMemberPayments = async (req, res) => { 
+    const {memberId, organizationId} = req.query;
+    const user = await (await db).collection("members").findOne({_id: ObjectId(memberId)});
+    // const collectionNames = await(await db).collections();
+    const organizationPaymentsMetas = await (await db).collection("paymentRecordMetas").find({organizationId}).toArray();
+    const paymentsRecords = await Promise.all (organizationPaymentsMetas.map(async(doc) => {
+        const paymentsForMember = await(await (await db).collection(doc.recordName + "_" + organizationId).find({userId: user?.userId})).toArray()
+        console.log(paymentsForMember);
+        paymentsForMember.map(p => {
+            p['paymentRecord'] = doc.recordName;
+            return p;
+        })
+        return paymentsForMember;
+    }));
+    console.log(paymentsRecords)
+    res.json(paymentsRecords.flat());
+}
+
+organizationController.getMemberExpectedPayments = async (req, res) => { 
+    const { memberId, organizationId } = req.query;
+    const organizationPaymentsMetas = await (await db).collection("paymentRecordMetas").find({organizationId}).toArray();
+    const expectedPayments = await Promise.all (organizationPaymentsMetas.map(async(doc) => {
+        const expectedPaymentForMember = await (await (await db).collection("expectedPayments" + "_" + doc["_id"].toString()).find({memberId})).toArray();
+        console.log(expectedPaymentForMember);
+        expectedPaymentForMember.map(p => {
+            p['paymentRecord'] = doc.recordName;
+            return p;;
+        })
+        return expectedPaymentForMember;
+    }))
+    console.log(expectedPayments);
+    res.json(expectedPayments.flat());
+}
 module.exports = organizationController;        

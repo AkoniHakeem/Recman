@@ -12,6 +12,7 @@ const PaymentSchema = function(fields) {
     this.date = fields.date || Date.now();
     this.mode = fields.mode
     this.organizationId = fields.organizationId;
+    this.cycleYear = fields.year;
     return {
         ...ModelBuildUpHelper(fields),
         ...this

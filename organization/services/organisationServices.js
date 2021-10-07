@@ -306,7 +306,7 @@ orgServices.generateAllExpectedPayments = async (db) => {
     }
 
     /**
-     * Generates expected payments for the payment record id specified and for all members that belongs to to the organization. It internally manages whether 
+     * Generates expected payments for the payment record id specified and for all members that belongs to the organization. It internally manages whether 
      * a member's expected payment record for a particular cycle should not be generated.
      * @param {any} db 
      * @param {string | number} targetAmount 

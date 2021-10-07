@@ -24,6 +24,12 @@ const _orgnizationRouter = (e) => {
 
     orgRouter.post("/generate-expected-payments", organizationController.generateExpectedPayments);
 
+    orgRouter.get("/member", organizationController.getMember);
+
+    orgRouter.get('/member/payments', organizationController.getMemberPayments);
+
+    orgRouter.get('/member/expected-payments', organizationController.getMemberExpectedPayments);
+
     return orgRouter;
 }
 
