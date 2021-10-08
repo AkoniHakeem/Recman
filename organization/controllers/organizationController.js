@@ -42,6 +42,8 @@ organizationController.getOrganizations = async (req, res) => {
     }
 }
 
+organization
+
 // todo: test function
 organizationController.addMember = async (req, res) => {
     try {
@@ -119,7 +121,7 @@ organizationController.postPaymentRecord = async (req, res) => {
         const paymentRecordSchmaData = new PaymentSchema(req.body);
         const organizationId = paymentRecordSchmaData.organizationId;
         const organizationPaymentMeta = await (await db).collection("paymentRecordMetas").findOne({organizationId, recordName });
-        const memeber = await (await db).collection("members").findOne({userId})
+        const member = await (await db).collection("members").findOne({userId})
 
         recordName = recordName.toLowerCase().replace(" ", "_") + "_" + paymentRecordSchmaData.organizationId;
         
@@ -127,14 +129,16 @@ organizationController.postPaymentRecord = async (req, res) => {
 
         if(insertedResult.insertedCount > 0) {
             const expectedPaymentToUpdate = await (await db).collection(`expectedPaymentMetas_${organizationPaymentMeta._id.toString()}`)
-            .findOne({memberId: memeber.memberId, organizationId});
-            expectedPaymentToUpdate.amountOwing -= amount;
-            expectedPaymentToUpdate.amountLastPaid = amount;
+            .findOne({memberId: member._id.toString(), organizationId});
+            const amountOwing = expectedPaymentToUpdate.amountOwing - amount;
+            const amountLastPaid = amount;
+            const dateOfLastPayment = Date.now();
             expectedPaymentToUpdate.dateOfLastPayment = Date.now();
-            
+
             const updateResult = await (await db)
-            .collection(`expectedPaymentMetas_${organizationPaymentMeta._id.toString()}`).updateOne({memberId: memeber.memberId, organizationId}, 
-                {$set: expectedPaymentToUpdate});
+            .collection(`expectedPaymentMetas_${organizationPaymentMeta._id.toString()}`)
+            .updateOne({memberId: member._id.toString(), organizationId}, 
+                {$set: {amountOwing, amountLastPaid, dateOfLastPayment}});
 
             res.json({message: resMsg.successful})
         }
@@ -262,12 +266,9 @@ organizationController.getMemberExpectedPayments = async (req, res) => {
     const { memberId, organizationId } = req.query;
     const organizationPaymentsMetas = await (await db).collection("paymentRecordMetas").find({organizationId}).toArray();
     const expectedPayments = await Promise.all (organizationPaymentsMetas.map(async(doc) => {
-        const expectedPaymentForMember = await (await (await db).collection("expectedPayments" + "_" + doc["_id"].toString()).find({memberId})).toArray();
+        const expectedPaymentForMember = await (await (await db).collection("expectedPaymentMetas" + "_" + doc["_id"].toString()).findOne({memberId, organizationId}));
         console.log(expectedPaymentForMember);
-        expectedPaymentForMember.map(p => {
-            p['paymentRecord'] = doc.recordName;
-            return p;;
-        })
+        expectedPaymentForMember['paymentRecord'] = doc.recordName;
         return expectedPaymentForMember;
     }))
     console.log(expectedPayments);
