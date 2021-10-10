@@ -42,8 +42,6 @@ organizationController.getOrganizations = async (req, res) => {
     }
 }
 
-organization
-
 // todo: test function
 organizationController.addMember = async (req, res) => {
     try {
