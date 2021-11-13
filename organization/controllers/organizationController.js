@@ -248,7 +248,8 @@ organizationController.getMemberPayments = async (req, res) => {
     // const collectionNames = await(await db).collections();
     const organizationPaymentsMetas = await (await db).collection("paymentRecordMetas").find({organizationId}).toArray();
     const paymentsRecords = await Promise.all (organizationPaymentsMetas.map(async(doc) => {
-        const paymentsForMember = await(await (await db).collection(doc.recordName + "_" + organizationId).find({userId: user?.userId})).toArray()
+        const userId = user? user.userId : '';
+        const paymentsForMember = await(await (await db).collection(doc.recordName + "_" + organizationId).find({userId: userId})).toArray()
         console.log(paymentsForMember);
         paymentsForMember.map(p => {
             p['paymentRecord'] = doc.recordName;
